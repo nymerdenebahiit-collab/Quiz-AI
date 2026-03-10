@@ -1,21 +1,8 @@
 // src/middleware.ts
 import { clerkMiddleware } from "@clerk/nextjs/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 const WEBHOOK_PATH = "/api/webhooks/clerk";
-
-export default clerkMiddleware(async (auth, req: NextRequest) => {
-  const { pathname } = req.nextUrl;
-
-  if (pathname === WEBHOOK_PATH) {
-    return;
-  }
-
-  const session = await auth();
-  if (!session.userId) {
-    return session.redirectToSignIn();
-  }
-});
 
 export const config = {
   matcher: [
@@ -25,3 +12,24 @@ export const config = {
     "/(api|trpc)(.*)",
   ],
 };
+
+const hasClerkKeys =
+  !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+  !!process.env.CLERK_SECRET_KEY;
+
+export default hasClerkKeys
+  ? clerkMiddleware(async (auth, req: NextRequest) => {
+      const { pathname } = req.nextUrl;
+
+      if (pathname === WEBHOOK_PATH) {
+        return;
+      }
+
+      const session = await auth();
+      if (!session.userId) {
+        return session.redirectToSignIn();
+      }
+    })
+  : function middleware() {
+      return NextResponse.next();
+    };
