@@ -1,6 +1,11 @@
 {
   "name": "quiz-ai-root",
   "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start"
+  },
   "devDependencies": {
     "next": "16.1.0"
   }
