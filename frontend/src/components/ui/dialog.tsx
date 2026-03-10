@@ -53,7 +53,8 @@ function DialogTrigger({
   const { setOpen } = useDialogContext();
 
   const handleClick = (e: React.MouseEvent<HTMLElement>) => {
-    props.onClick?.(e);
+    const onClick = props.onClick as React.MouseEventHandler<HTMLElement> | undefined;
+    onClick?.(e);
     if (!e.defaultPrevented) setOpen(true);
   };
 
@@ -82,7 +83,8 @@ function DialogClose({
   const { setOpen } = useDialogContext();
 
   const handleClick = (e: React.MouseEvent<HTMLElement>) => {
-    props.onClick?.(e);
+    const onClick = props.onClick as React.MouseEventHandler<HTMLElement> | undefined;
+    onClick?.(e);
     if (!e.defaultPrevented) setOpen(false);
   };
 
