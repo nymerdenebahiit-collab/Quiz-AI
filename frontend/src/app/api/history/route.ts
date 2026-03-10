@@ -1,6 +1,6 @@
 // app/api/history/route.ts
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/clerk-server";
 import { listArticlesByUserId, upsertUserByClerkId } from "@/lib/file-db";
 
 export const runtime = "nodejs";

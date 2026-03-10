@@ -1,6 +1,6 @@
 // src/middleware.ts
-import { clerkMiddleware } from "@clerk/nextjs/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { clerkMiddleware } from "@/lib/clerk-server";
+import type { NextRequest } from "next/server";
 
 const WEBHOOK_PATH = "/api/webhooks/clerk";
 
@@ -13,23 +13,15 @@ export const config = {
   ],
 };
 
-const hasClerkKeys =
-  !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-  !!process.env.CLERK_SECRET_KEY;
+export default clerkMiddleware(async (auth, req: NextRequest) => {
+  const { pathname } = req.nextUrl;
 
-export default hasClerkKeys
-  ? clerkMiddleware(async (auth, req: NextRequest) => {
-      const { pathname } = req.nextUrl;
+  if (pathname === WEBHOOK_PATH) {
+    return;
+  }
 
-      if (pathname === WEBHOOK_PATH) {
-        return;
-      }
-
-      const session = await auth();
-      if (!session.userId) {
-        return session.redirectToSignIn();
-      }
-    })
-  : function middleware() {
-      return NextResponse.next();
-    };
+  const session = await auth();
+  if (!session.userId) {
+    return session.redirectToSignIn();
+  }
+});

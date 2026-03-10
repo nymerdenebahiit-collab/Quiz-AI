@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@/lib/clerk-server";
 import { createArticleWithQuizzes, upsertUserByClerkId } from "@/lib/file-db";
 
 export const runtime = "nodejs";

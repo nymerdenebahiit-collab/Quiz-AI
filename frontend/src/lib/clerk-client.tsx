@@ -1,33 +1,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import * as Clerk from "@clerk/nextjs";
 
-// Temporary local stubs to allow builds when @clerk/nextjs is not installed.
-// Replace imports back to "@clerk/nextjs" once the package is installed.
+const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-export function ClerkProvider({ children }: { children: ReactNode }) {
+function StubClerkProvider({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-export function SignedIn({ children }: { children: ReactNode }) {
-  // Always render children in dev when Clerk isn't available.
+function StubSignedIn({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-export function SignedOut({ children }: { children: ReactNode }) {
-  // Never render signed-out UI when Clerk isn't available.
+function StubSignedOut({ children }: { children: ReactNode }) {
   return null;
 }
 
-export function SignInButton({ children }: { children?: ReactNode }) {
+function StubSignInButton() {
   return <button className="px-4 h-10 rounded-full border">Sign In</button>;
 }
 
-export function SignUpButton({ children }: { children?: ReactNode }) {
+function StubSignUpButton({ children }: { children?: ReactNode }) {
   return children ? <>{children}</> : <button>Sign Up</button>;
 }
 
-export function UserButton() {
+function StubUserButton() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -72,15 +70,26 @@ export function UserButton() {
   );
 }
 
-export function useClerk() {
+function stubUseClerk() {
   return {
     openSignIn: () => undefined,
   };
 }
 
-export function useUser() {
+function stubUseUser() {
   return {
     user: { id: "dev" },
     isLoaded: true,
   };
 }
+
+export const ClerkProvider = hasClerkKey
+  ? Clerk.ClerkProvider
+  : StubClerkProvider;
+export const SignedIn = hasClerkKey ? Clerk.SignedIn : StubSignedIn;
+export const SignedOut = hasClerkKey ? Clerk.SignedOut : StubSignedOut;
+export const SignInButton = hasClerkKey ? Clerk.SignInButton : StubSignInButton;
+export const SignUpButton = hasClerkKey ? Clerk.SignUpButton : StubSignUpButton;
+export const UserButton = hasClerkKey ? Clerk.UserButton : StubUserButton;
+export const useClerk = hasClerkKey ? Clerk.useClerk : stubUseClerk;
+export const useUser = hasClerkKey ? Clerk.useUser : stubUseUser;

@@ -1,14 +1,16 @@
 import type { NextRequest } from "next/server";
-
-// Temporary local stubs to allow builds when @clerk/nextjs is not installed.
-// Replace imports back to "@clerk/nextjs/server" once the package is installed.
+import * as ClerkServer from "@clerk/nextjs/server";
 
 type AuthSession = {
   userId: string | null;
   redirectToSignIn: () => void;
 };
 
-export function clerkMiddleware(
+const hasClerkKeys =
+  !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+  !!process.env.CLERK_SECRET_KEY;
+
+function stubClerkMiddleware(
   handler: (auth: () => Promise<AuthSession>, req: NextRequest) => unknown,
 ) {
   return async (req: NextRequest) => {
@@ -22,7 +24,7 @@ export function clerkMiddleware(
   };
 }
 
-export async function auth(): Promise<{ userId: string | null }> {
+async function stubAuth(): Promise<{ userId: string | null }> {
   return { userId: "dev" };
 }
 
@@ -33,13 +35,19 @@ type ClerkUser = {
   firstName: string | null;
 };
 
-export async function currentUser(): Promise<ClerkUser | null> {
+async function stubCurrentUser(): Promise<ClerkUser | null> {
   return {
     id: "dev",
     emailAddresses: [{ emailAddress: "dev@example.com" }],
     firstName: "Dev",
   };
 }
+
+export const clerkMiddleware = hasClerkKeys
+  ? ClerkServer.clerkMiddleware
+  : stubClerkMiddleware;
+export const auth = hasClerkKeys ? ClerkServer.auth : stubAuth;
+export const currentUser = hasClerkKeys ? ClerkServer.currentUser : stubCurrentUser;
 
 type WebhookEmailAddress = {
   id: string;
