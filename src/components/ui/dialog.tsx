@@ -52,13 +52,13 @@ function DialogTrigger({
 }: React.ComponentProps<"button"> & { asChild?: boolean }) {
   const { setOpen } = useDialogContext();
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
     props.onClick?.(e);
     if (!e.defaultPrevented) setOpen(true);
   };
 
-  if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children as React.ReactElement, {
+  if (asChild && React.isValidElement<React.HTMLAttributes<HTMLElement>>(children)) {
+    return React.cloneElement(children, {
       onClick: handleClick,
     });
   }
@@ -81,13 +81,13 @@ function DialogClose({
 }: React.ComponentProps<"button"> & { asChild?: boolean }) {
   const { setOpen } = useDialogContext();
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
     props.onClick?.(e);
     if (!e.defaultPrevented) setOpen(false);
   };
 
-  if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children as React.ReactElement, {
+  if (asChild && React.isValidElement<React.HTMLAttributes<HTMLElement>>(children)) {
+    return React.cloneElement(children, {
       onClick: handleClick,
     });
   }
