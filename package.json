@@ -1,0 +1,7 @@
+{
+  "name": "quiz-ai-root",
+  "private": true,
+  "devDependencies": {
+    "next": "16.1.0"
+  }
+}
