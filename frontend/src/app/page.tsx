@@ -31,6 +31,7 @@ export default function Home() {
   const [answers, setAnswers] = useState<UserAnswer[]>([]);
   const [score, setScore] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [quizError, setQuizError] = useState("");
 
   const [view, setView] = useState<"create" | "summary" | "quiz" | "answers">(
     "create"
@@ -79,6 +80,7 @@ export default function Home() {
             setContent={setContent}
             onGenerated={(s) => {
               setSummary(s);
+              setQuizError("");
               setView("summary");
             }}
           />
@@ -86,26 +88,46 @@ export default function Home() {
 
         {/* SUMMARY */}
         {view === "summary" && (
-          <SummarizedContent
-            title={title}
-            summary={summary}
-            content={content}
-            onBack={() => setView("create")}
-            onQuiz={async () => {
-              const res = await fetch("/api/quizs", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ summary }),
-              });
-              const data = await res.json();
-              if (data.success) {
-                setQuestions(data.quizzes);
-                setAnswers([]);
-                setScore(0);
-                setView("quiz");
-              }
-            }}
-          />
+          <div className="flex flex-col gap-3">
+            {quizError ? <p className="text-sm text-red-600">{quizError}</p> : null}
+            <SummarizedContent
+              title={title}
+              summary={summary}
+              content={content}
+              onSummaryChange={setSummary}
+              onBack={() => setView("create")}
+              onQuiz={async () => {
+                setQuizError("");
+
+                try {
+                  const res = await fetch("/api/quizs", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ summary }),
+                  });
+                  const data = await res.json();
+
+                  if (res.ok && data.success) {
+                    setQuestions(data.quizzes);
+                    setAnswers([]);
+                    setScore(0);
+                    setView("quiz");
+                    return;
+                  }
+
+                  setQuizError(
+                    data?.message ??
+                      "Quiz үүсгэж чадсангүй. GEMINI_API_KEY тохиргоогоо шалгана уу."
+                  );
+                } catch (error) {
+                  console.error(error);
+                  setQuizError(
+                    "Quiz үүсгэж чадсангүй. Сервер эсвэл API тохиргоогоо шалгана уу."
+                  );
+                }
+              }}
+            />
+          </div>
         )}
 
         {/* QUIZ */}

@@ -1,5 +1,5 @@
-// Temporary local stub to allow builds when @google/genai is not installed.
-// Replace import back to "@google/genai" once the package is installed.
+// Load @google/genai dynamically so the app can still run in environments
+// where dependency installation is restricted.
 
 type GenerateContentArgs = {
   model: string;
@@ -84,10 +84,66 @@ class ModelsClient {
   }
 }
 
-export class GoogleGenAI {
-  models: ModelsClient;
+class MissingApiKeyModelsClient {
+  async generateContent(): Promise<GenerateContentResult> {
+    return {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text:
+                  "AI is unavailable. Set GEMINI_API_KEY or GOOGLE_API_KEY in your environment.",
+              },
+            ],
+          },
+        },
+      ],
+    };
+  }
+}
 
-  constructor(_options: Record<string, unknown>) {
-    this.models = new ModelsClient();
+type GoogleGenAIClient = {
+  models: {
+    generateContent: (args: GenerateContentArgs) => Promise<GenerateContentResult>;
+  };
+};
+
+function loadGoogleGenAI():
+  | (new (options: Record<string, unknown>) => GoogleGenAIClient)
+  | null {
+  try {
+    // Avoid static resolution errors when @google/genai isn't installed.
+    const req = eval("require") as NodeRequire;
+    return req("@google/genai").GoogleGenAI;
+  } catch {
+    return null;
+  }
+}
+
+export class GoogleGenAI {
+  models: GoogleGenAIClient["models"];
+
+  constructor(options: Record<string, unknown>) {
+    const RealGoogleGenAI = loadGoogleGenAI();
+    if (!RealGoogleGenAI) {
+      this.models = new ModelsClient();
+      return;
+    }
+
+    const explicitApiKey =
+      typeof options.apiKey === "string" ? options.apiKey : undefined;
+    const apiKey =
+      explicitApiKey ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY;
+
+    if (!apiKey) {
+      this.models = new MissingApiKeyModelsClient();
+      return;
+    }
+
+    const client = new RealGoogleGenAI({ ...options, apiKey });
+    this.models = client.models;
   }
 }

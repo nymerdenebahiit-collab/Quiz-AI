@@ -26,6 +26,7 @@ type Props = {
   title: string;
   summary: string;
   content: string;
+  onSummaryChange: (value: string) => void;
   onBack: () => void;
   onQuiz: () => Promise<void>;
 };
@@ -34,6 +35,7 @@ export default function SummarizedContent({
   title,
   summary,
   content,
+  onSummaryChange,
   onBack,
   onQuiz,
 }: Props) {
@@ -70,7 +72,12 @@ export default function SummarizedContent({
         </CardHeader>
 
         <CardContent className="p-0">
-          <Textarea value={summary} disabled className="min-h-40" />
+          <Textarea
+            value={summary}
+            onChange={(e) => onSummaryChange(e.target.value)}
+            className="min-h-40"
+            placeholder="Summary-гаа энд гараар бичиж болно..."
+          />
         </CardContent>
 
         <CardFooter className="flex justify-between items-center p-0">
