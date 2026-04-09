@@ -9,6 +9,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Build/install үед DATABASE_URL байхгүй орчинд `prisma generate` унахгүй байлгах fallback.
+    url:
+      process.env["DATABASE_URL"] ??
+      "postgresql://placeholder:placeholder@localhost:5432/placeholder",
   },
 });
