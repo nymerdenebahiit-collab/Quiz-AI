@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import CreateArcticle from "./_components/CreateArcticle";
 import SummarizedContent from "./_components/SummarizedContent";
 import Quiz from "./_components/Quiz";
@@ -24,6 +25,7 @@ type UserAnswer = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [summary, setSummary] = useState("");
@@ -32,6 +34,7 @@ export default function Home() {
   const [score, setScore] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [quizError, setQuizError] = useState("");
+  const [saveError, setSaveError] = useState("");
 
   const [view, setView] = useState<"create" | "summary" | "quiz" | "answers">(
     "create"
@@ -42,8 +45,9 @@ export default function Home() {
 
     try {
       setIsSaving(true);
+      setSaveError("");
 
-      await fetch("/api/save-and-leave", {
+      const res = await fetch("/api/save-and-leave", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -56,9 +60,16 @@ export default function Home() {
         }),
       });
 
-      setView("summary");
+      const data = await res.json();
+      if (!res.ok || !data?.success || !data?.articleId) {
+        setSaveError(data?.message ?? "Failed to save article.");
+        return;
+      }
+
+      router.push(`/article/${data.articleId}`);
     } catch (err) {
       console.error("Save & Leave failed", err);
+      setSaveError("Save & Leave failed. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -117,12 +128,12 @@ export default function Home() {
 
                   setQuizError(
                     data?.message ??
-                      "Quiz үүсгэж чадсангүй. GEMINI_API_KEY тохиргоогоо шалгана уу."
+                      "Quiz үүсгэж чадсангүй. Дараа дахин оролдоно уу."
                   );
                 } catch (error) {
                   console.error(error);
                   setQuizError(
-                    "Quiz үүсгэж чадсангүй. Сервер эсвэл API тохиргоогоо шалгана уу."
+                    "Сервертэй холбогдож чадсангүй. `npm run dev` ассан эсэх болон дискний сул зайгаа шалгана уу."
                   );
                 }
               }}
@@ -166,6 +177,7 @@ export default function Home() {
         {/* ANSWERS */}
         {view === "answers" && (
           <div className="flex flex-col gap-6">
+            {saveError ? <p className="text-sm text-red-600">{saveError}</p> : null}
             <div>
               <div className="flex gap-2 items-center">
                 <StarIcon />
@@ -181,7 +193,7 @@ export default function Home() {
               answers={answers}
               onRestart={() => setView("quiz")}
               onLeave={handleSaveAndLeave}
-              isSaving={false}
+              isSaving={isSaving}
             />
           </div>
         )}

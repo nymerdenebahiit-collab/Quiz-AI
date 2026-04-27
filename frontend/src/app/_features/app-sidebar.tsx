@@ -69,8 +69,13 @@ export function AppSidebar() {
     setLoading(true);
 
     fetch("/api/history")
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      })
       .then((data) => setHistory(data))
+      .catch(() => setHistory([]))
       .finally(() => setLoading(false));
   }, [open]);
 

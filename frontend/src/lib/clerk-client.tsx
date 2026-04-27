@@ -1,41 +1,140 @@
-import { useState } from "react";
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import * as Clerk from "@clerk/nextjs";
 
 const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const LOCAL_AUTH_STORAGE_KEY = "quiz_ai_local_auth";
+
+type LocalUser = {
+  id: string;
+  firstName: string;
+};
+
+type LocalAuthContextValue = {
+  user: LocalUser | null;
+  isLoaded: boolean;
+  openSignIn: () => void;
+  signOut: () => void;
+};
+
+const LocalAuthContext = createContext<LocalAuthContextValue>({
+  user: null,
+  isLoaded: false,
+  openSignIn: () => undefined,
+  signOut: () => undefined,
+});
 
 function StubClerkProvider({ children }: { children: ReactNode }) {
-  return <>{children}</>;
+  const [user, setUser] = useState<LocalUser | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LOCAL_AUTH_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as LocalUser;
+        if (parsed?.id) {
+          setUser(parsed);
+        }
+      }
+    } catch {
+      // Ignore invalid local auth state.
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  const value = useMemo<LocalAuthContextValue>(
+    () => ({
+      user,
+      isLoaded,
+      openSignIn: () => {
+        const localUser: LocalUser = {
+          id: "local-user",
+          firstName: "Local",
+        };
+        setUser(localUser);
+        localStorage.setItem(LOCAL_AUTH_STORAGE_KEY, JSON.stringify(localUser));
+      },
+      signOut: () => {
+        setUser(null);
+        localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY);
+      },
+    }),
+    [isLoaded, user]
+  );
+
+  return (
+    <LocalAuthContext.Provider value={value}>
+      {children}
+    </LocalAuthContext.Provider>
+  );
 }
 
 function StubSignedIn({ children }: { children: ReactNode }) {
-  return <>{children}</>;
+  const { user } = useContext(LocalAuthContext);
+  return user ? <>{children}</> : null;
 }
 
 function StubSignedOut({ children }: { children: ReactNode }) {
-  return null;
+  const { user } = useContext(LocalAuthContext);
+  return user ? null : <>{children}</>;
 }
 
 function StubSignInButton() {
-  return <button className="px-4 h-10 rounded-full border">Sign In</button>;
+  const { openSignIn } = useContext(LocalAuthContext);
+
+  return (
+    <button
+      className="px-4 h-10 rounded-full border"
+      onClick={openSignIn}
+      type="button"
+    >
+      Sign In
+    </button>
+  );
 }
 
 function StubSignUpButton({ children }: { children?: ReactNode }) {
-  return children ? <>{children}</> : <button>Sign Up</button>;
+  const { openSignIn } = useContext(LocalAuthContext);
+
+  if (children) {
+    return (
+      <div onClick={openSignIn} className="contents">
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <button onClick={openSignIn} type="button">
+      Sign Up
+    </button>
+  );
 }
 
 function StubUserButton() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { user, signOut } = useContext(LocalAuthContext);
 
   return (
     <div className="relative">
       <button
         className="px-3 h-8 rounded-full border text-sm"
         onClick={() => setOpen((v) => !v)}
+        type="button"
       >
-        User
+        {user?.firstName ?? "User"}
       </button>
 
       {open && (
@@ -46,6 +145,7 @@ function StubUserButton() {
               setOpen(false);
               router.push("/profile");
             }}
+            type="button"
           >
             Profile
           </button>
@@ -55,14 +155,19 @@ function StubUserButton() {
               setOpen(false);
               router.push("/settings");
             }}
+            type="button"
           >
             Settings
           </button>
           <button
-            className="w-full text-left px-2 py-1 rounded hover:bg-gray-100"
-            onClick={() => setOpen(false)}
+            className="w-full text-left px-2 py-1 rounded hover:bg-gray-100 text-red-600"
+            onClick={() => {
+              setOpen(false);
+              signOut();
+            }}
+            type="button"
           >
-            Close
+            Sign out
           </button>
         </div>
       )}
@@ -70,26 +175,24 @@ function StubUserButton() {
   );
 }
 
-function stubUseClerk() {
+function useStubClerk() {
+  const { openSignIn } = useContext(LocalAuthContext);
+  return { openSignIn };
+}
+
+function useStubUser() {
+  const { user, isLoaded } = useContext(LocalAuthContext);
   return {
-    openSignIn: () => undefined,
+    user: user ? { id: user.id } : null,
+    isLoaded,
   };
 }
 
-function stubUseUser() {
-  return {
-    user: { id: "dev" },
-    isLoaded: true,
-  };
-}
-
-export const ClerkProvider = hasClerkKey
-  ? Clerk.ClerkProvider
-  : StubClerkProvider;
+export const ClerkProvider = hasClerkKey ? Clerk.ClerkProvider : StubClerkProvider;
 export const SignedIn = hasClerkKey ? Clerk.SignedIn : StubSignedIn;
 export const SignedOut = hasClerkKey ? Clerk.SignedOut : StubSignedOut;
 export const SignInButton = hasClerkKey ? Clerk.SignInButton : StubSignInButton;
 export const SignUpButton = hasClerkKey ? Clerk.SignUpButton : StubSignUpButton;
 export const UserButton = hasClerkKey ? Clerk.UserButton : StubUserButton;
-export const useClerk = hasClerkKey ? Clerk.useClerk : stubUseClerk;
-export const useUser = hasClerkKey ? Clerk.useUser : stubUseUser;
+export const useClerk = hasClerkKey ? Clerk.useClerk : useStubClerk;
+export const useUser = hasClerkKey ? Clerk.useUser : useStubUser;

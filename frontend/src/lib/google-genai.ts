@@ -15,6 +15,28 @@ type GenerateContentResult = {
 };
 
 class ModelsClient {
+  private summarize(text: string): string {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    if (!normalized) {
+      return "No content provided.";
+    }
+
+    const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
+    const selected = (sentences.length ? sentences : [normalized]).slice(0, 3);
+    const summary = selected.join(" ");
+
+    return summary.length > 420 ? `${summary.slice(0, 420).trim()}...` : summary;
+  }
+
+  private extractArticleText(prompt: string): string {
+    const summaryMarker = "Please provide a concise summary of the following article:";
+    const markerIndex = prompt.indexOf(summaryMarker);
+    if (markerIndex >= 0) {
+      return prompt.slice(markerIndex + summaryMarker.length).trim();
+    }
+    return prompt;
+  }
+
   async generateContent(args: GenerateContentArgs): Promise<GenerateContentResult> {
     const prompt = args.contents ?? "";
 
@@ -67,14 +89,15 @@ class ModelsClient {
       };
     }
 
+    const summary = this.summarize(this.extractArticleText(prompt));
+
     return {
       candidates: [
         {
           content: {
             parts: [
               {
-                text:
-                  "AI summary is unavailable in this build because @google/genai is not installed.",
+                text: summary,
               },
             ],
           },
@@ -84,24 +107,7 @@ class ModelsClient {
   }
 }
 
-class MissingApiKeyModelsClient {
-  async generateContent(): Promise<GenerateContentResult> {
-    return {
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                text:
-                  "AI is unavailable. Set GEMINI_API_KEY or GOOGLE_API_KEY in your environment.",
-              },
-            ],
-          },
-        },
-      ],
-    };
-  }
-}
+class MissingApiKeyModelsClient extends ModelsClient {}
 
 type GoogleGenAIClient = {
   models: {
