@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
   "installCommand": "npm install --include=dev && npm --prefix frontend install",
-  "buildCommand": "npm --prefix frontend run build",
+  "buildCommand": "npm --prefix frontend run build && rm -rf .next && cp -R frontend/.next .next",
   "devCommand": "npm --prefix frontend run dev"
 }
